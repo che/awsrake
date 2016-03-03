@@ -3,7 +3,7 @@ require 'json'
 
 module AWSRake
   class Route53
-    attr_reader :hosted_zone, :dns_name, :dns_type
+    attr_reader :data
 
     DNS_TYPE = {
       a: 'A',
@@ -24,26 +24,15 @@ module AWSRake
       delete: 'DELETE'
     }
 
-    CONFIG_KEYS = [
-      'hosted_zone',
-      'name',
-      'type',
-      'data'
-    ]
-
     REG_DNS_FULL_NAME_EXT = /[\.]$/
     REG_ELB_DOMAIN = /[\.][Ee][Ll][Bb][\.][Aa][Mm][Aa][Zz][Oo][Nn][Aa][Ww][Ss][\.][Cc][Oo][Mm][\.]$/
 
     def initialize(options = {})
-      @hosted_zone = options[:hosted_zone]
-      @dns_name = options[:dns_name]
-      @dns_type = options[:dns_type]
       @config_file = options[:config_file]
       @config_init = !!options[:config_init]
       @message_status = !!options[:message]
       @hosted_zone_obj = nil
       @hosted_zone_id = nil
-      @config_data = nil
       @data = nil
       @r53 = Aws::Route53::Client.new
       @config_file = File.expand_path(@config_file) if config_file?
@@ -67,30 +56,15 @@ module AWSRake
     end
 
     def init_config(cfile = @config_file)
-      @config_data = JSON.parse(File.read(cfile))
-      CONFIG_KEYS.each do |key|
-        if @config_data.key?(key)
-          case key
-          when CONFIG_KEYS[0]
-            @hosted_zone = @config_data[key]
-          when CONFIG_KEYS[1]
-            @dns_name = @config_data[key]
-          when CONFIG_KEYS[2]
-            @dns_type = @config_data[key]
-          when CONFIG_KEYS[3]
-            @data = @config_data[key]
-          end
-        end
-      end
-p @config_data
+      @data = JSON.parse(File.read(cfile), {symbolize_names: true}).freeze
 p @data
     end
 
-    def hosted_zone?(zone = @hosted_zone)
+    def hosted_zone?(zone = @data[:hosted_zone])
       zone && zone.kind_of?(String) && !zone.strip.empty?
     end
 
-    def real_hosted_zone?(zone = @hosted_zone)
+    def real_hosted_zone?(zone = @data[:hosted_zone])
       define_hosted_zone(zone) do |status|
         if status 
           message "Hosted zone '#{zone}' exists"
@@ -106,11 +80,12 @@ p @data
       !!@hosted_zone_obj
     end
 
-    def dns_name?(name = @dns_name)
+    def dns_name?(name = @data[:dns_name])
       name && name.kind_of?(String) && !name.strip.empty?
     end
 
-    def real_dns_name?(name = @dns_name, zone = @hosted_zone)
+    def real_dns_name?(name = @data[:dns_name],
+                       zone = @data[:hosted_zone])
       if real_hosted_zone?(zone) 
         define_dns_name(name, zone) do |status|
           if status
@@ -128,11 +103,13 @@ p @data
       hosted_zone_defined? && !!@dns_name_objs && !@dns_name_objs.empty?
     end
 
-    def dns_type?(type = @dns_type)
+    def dns_type?(type = @data[:dns_type])
       type && type.kind_of?(String) && self.class::DNS_TYPE.values.include?(type)
     end
 
-    def real_dns_type?(type = @dns_type, name = @dns_name, zone = @hosted_zone)
+    def real_dns_type?(type = @data[:dns_type],
+                       name = @data[:dns_name],
+                       zone = @data[:hosted_zone])
       if real_dns_name?(name, zone)
         define_dns_type(type, name, zone) do |status|
           if status
@@ -150,7 +127,8 @@ p @data
       dns_name_defined? && !!@dns_type_objs
     end
 
-    def full_dns_name(name = @dns_name, zone = @hosted_zone)
+    def full_dns_name(name = @data[:dns_name],
+                      zone = @data[:hosted_zone])
       ebl_dns_name((name =~ REG_DNS_FULL_NAME_EXT)?(name):("#{name}.#{zone}"))
     end
 
@@ -169,7 +147,7 @@ p @data
 
     private
 
-    def find_hosted_zone(zone = @hosted_zone)
+    def find_hosted_zone(zone = @data[:hosted_zone])
       @r53.list_hosted_zones.hosted_zones.each do |i|
         if i.name == zone
           @hosted_zone_obj = i
@@ -179,12 +157,13 @@ p @data
       end
     end
 
-    def define_hosted_zone(zone = @hosted_zone)
+    def define_hosted_zone(zone = @data[:hosted_zone])
       find_hosted_zone(zone) if hosted_zone?(zone)
       yield(hosted_zone_defined?) if block_given?
     end
 
-    def find_dns_name(name = @dns_name, zone = @hosted_zone)
+    def find_dns_name(name = @data[:dns_name],
+                      zone = @data[:hosted_zone])
       @r53.list_resource_record_sets(max_items: @hosted_zone_obj.resource_record_set_count,
                                      start_record_name: full_dns_name(name, zone),
                                      hosted_zone_id: @hosted_zone_id).resource_record_sets
@@ -197,7 +176,8 @@ p @data
       end
     end
 
-    def define_dns_name(name = @dns_name, zone = @hosted_zone)
+    def define_dns_name(name = @data[:dns_name],
+                        zone = @data[:hosted_zone])
       if dns_name?(name) && hosted_zone_defined? && !@dns_name_objs
         @dns_name_objs = find_dns_name(name, zone)
         check_dns_name(full_dns_name(name, zone))
@@ -205,7 +185,9 @@ p @data
       yield(hosted_zone_defined? && dns_name_defined?) if block_given?
     end
 
-    def define_dns_type(type = @dns_type, name = @dns_name, zone = @hosted_zone)
+    def define_dns_type(type = @data[:dns_type],
+                        name = @data[:dns_name],
+                        zone = @data[:hosted_zone])
       if dns_type?(type) && hosted_zone_defined? && dns_name_defined?
         @dns_name_objs.each do |i|
           if i.type == type
@@ -215,7 +197,7 @@ p @data
         end
       end
       @dns_type_objs = false
-      (block_given?)?(yield(false)):(return false)
+      (block_given?)?(yield(false)):(false)
     end
 
   end
