@@ -1,0 +1,83 @@
+namespace :route53 do
+  namespace :failover do
+
+    r53_failover = AWSRake::Route53::Failover.new(config_file: ARGV[1],
+                                                  config_init: true,
+                                                  message: true)
+
+    desc 'Information about Hosted Zone for Route53 Failover'
+    task :info do
+      
+    end
+
+    desc 'Create new Failover for Hosted Zone of Route53'
+    task :create, [:type] do |task, arg|
+      if !r53_failover.real_dns_type? && r53_failover.hosted_zone_defined?
+        if !arg[:type].nil?
+          if arg[:type] == AWSRake::Route53::Failover::KEY[:primary]
+            if r53_failover.dns_type_defined? && r53_failover.dns_type_primary?
+              r53_failover.message "ERROR: Marked as PRIMARY cannot be created because a failover '#{r53_failover.dns_name}' already as primary"
+            else
+              r53_failover.action(:create, :primary)
+            end
+          elsif arg[:type] == AWSRake::Route53::Failover::KEY[:secondary]
+            r53_failover.action(:create, :secondary)
+          else
+            r53_failover.message "ERROR: Wrong Failover type"
+          end
+        else
+          r53_failover.action_all(:create)
+        end
+      else
+        r53_failover.message "Failover '#{r53_failover.hosted_zone}' cann't be created"
+      end
+    end
+
+    desc 'Update Failover for Hosted Zone of Route53'
+    task :update, [:type] do |task, arg|
+      if r53_failover.real_dns_type?
+        if !arg[:type].nil?
+          if arg[:type] == AWSRake::Route53::Failover::KEY[:primary]
+            if !r53_failover.dns_type_defined? && !r53_failover.dns_type_primary?
+              r53_failover.message "ERROR: Cann't be updated as PRIMARY because not was found"
+            else
+              r53_failover.action(:update, :primary)
+            end
+          elsif arg[:type] == AWSRake::Route53::Failover::KEY[:secondary]
+            r53_failover.action(:update, :secondary)
+          else
+            r53_failover.message "ERROR: Wrong Failover type"
+          end
+        else
+          r53_failover.action_all(:update)
+        end
+      else
+        r53_failover.mssage "Failover '#{r53_failover.hosted_zone}' cann't be updated"
+      end
+    end
+
+    desc 'Delete Failover for Hosted Zone of Route53'
+    task :delete, [:type] do |task, arg|
+      if r53_failover.real_dns_type?
+        if !arg[:type].nil?
+          if arg[:type] == AWSRake::Route53::Failover::KEY[:primary]
+            if !r53_failover.dns_type_defined? && !r53_failover.dns_type_primary?
+              r53_failover.message "ERROR: Cann't be deleted as PRIMARY because not was found"
+            else
+              r53_failover.action(:delete, :primary)
+            end
+          elsif arg[:type] == AWSRake::Route53::Failover::KEY[:secondary]
+            r53_failover.action(:delete, :secondary)
+          else
+            r53_failover.message "ERROR: Wrong Failover type"
+          end
+        else
+          r53_failover.action_all(:delete)
+        end
+      else
+        r53_failover.message "Failover '#{r53_failover.hosted_zone}' cann't be deleted"
+      end
+    end
+
+  end
+end
