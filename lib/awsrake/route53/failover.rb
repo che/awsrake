@@ -9,11 +9,7 @@ module AWSRake
         secondary: 'SECONDARY'
       }
 
-      DNS_TYPE = {
-        a: 'A',
-        aaaa: 'AAAA',
-        cname: 'CNAME'
-      }
+      DNS_TYPE = select_dns_type(:a, :aaaa, :cname)
 
       def dns_type_primary?
         if dns_type_defined?

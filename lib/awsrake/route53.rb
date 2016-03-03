@@ -27,6 +27,10 @@ module AWSRake
     REG_DNS_FULL_NAME_EXT = /[\.]$/
     REG_ELB_DOMAIN = /[\.][Ee][Ll][Bb][\.][Aa][Mm][Aa][Zz][Oo][Nn][Aa][Ww][Ss][\.][Cc][Oo][Mm][\.]$/
 
+    def self.select_dns_type(*keys)
+      DNS_TYPE.select { |k, v| keys.include?(k) }
+    end
+
     def initialize(options = {})
       @config_file = options[:config_file]
       @config_init = !!options[:config_init]
