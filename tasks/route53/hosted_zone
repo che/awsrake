@@ -1,0 +1,25 @@
+namespace :route53 do
+  namespace :hosted_zone do
+
+    desc 'Information about Hosted Zone for Route53'
+    task :info do
+      
+    end
+
+    desc 'Create new Hosted Zone of Route53'
+    task :create do
+      
+    end
+
+    desc 'Update Hosted Zone of Route53'
+    task :update do
+      
+    end
+
+    desc 'Delete Hosted Zone of Route53'
+    task :delete do
+      
+    end
+
+  end
+end
