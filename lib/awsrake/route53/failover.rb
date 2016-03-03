@@ -43,17 +43,14 @@ module AWSRake
       end
 
       def action(name, type)
-        res = @r53.change_resource_record_sets(build_action(ACTION[name],
-                                               TYPE[type],
-                                               @data[:data][type]))
-        message "ID: #{res.change_info.id}"
-        message "Status: #{res.change_info.status}"
-        sleep 3
-        message "Status: #{res.change_info.status}"
-        message "Submitted time: #{res.change_info.submitted_at}"
-        message "Comment: #{res.change_info.comment}"
+        run_action(name, type) do |b_action|
+          message "\n#{name.to_s.capitalize.chop}ing #{NAME} #{type.upcase}..."
 
-        res = nil
+          action_status(@r53.change_resource_record_sets(b_action).change_info.id) do |info|
+            message "Submitted time: #{info.submitted_at}"
+            message "Comment: #{info.comment}"
+          end
+        end
       end
 
       def action_all(name)
@@ -64,12 +61,32 @@ module AWSRake
 
       private
 
+      def action_status(change_id,
+                        a_status = CHANGE_INFO_STATUS[:pending],
+                        info = nil)
+        change_id = File.basename(change_id)
+
+        while a_status == CHANGE_INFO_STATUS[:pending]
+          sleep 5
+          info = @r53.get_change(id: change_id).change_info
+
+          message "    ...status: #{info.status}"
+
+          a_status = info.status
+        end
+        yield(info)
+      end
+
+      def run_action(name, type)
+        yield(build_action(ACTION[name], TYPE[type], @data[:data][type]))
+      end
+
       def build_action(type, f_type, f_data)
 p build_changes(type, f_type, f_data)
         {
           hosted_zone_id: @hosted_zone_id,
           change_batch: {
-            comment: "#{self.class} #{type}d '#{@data[:dns_name]}'",
+            comment: "#{self.class} #{f_type} #{ACTION.key(type).upcase}D '#{@data[:dns_name]}'",
             changes: build_changes(type, f_type, f_data)
           }
         }

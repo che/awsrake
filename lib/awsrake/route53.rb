@@ -24,6 +24,11 @@ module AWSRake
       delete: 'DELETE'
     }
 
+    CHANGE_INFO_STATUS = {
+      insync: 'INSYNC',
+      pending: 'PENDING'
+    }
+
     REG_DNS_FULL_NAME_EXT = /[\.]$/
     REG_ELB_DOMAIN = /[\.][Ee][Ll][Bb][\.][Aa][Mm][Aa][Zz][Oo][Nn][Aa][Ww][Ss][\.][Cc][Oo][Mm][\.]$/
 
