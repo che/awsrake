@@ -43,11 +43,7 @@ module AWSRake
       @hosted_zone_id = nil
       @data = nil
       @r53 = Aws::Route53::Client.new
-      if config_file?
-        @config_file = File.expand_path(@config_file)
-      else
-
-      end
+      @config_file = File.expand_path(@config_file) if config_file?
       init_config if @config_init
     end
 
@@ -68,11 +64,7 @@ module AWSRake
     end
 
     def init_config(cfile = @config_file)
-      if real_config_file?(cfile)
-        @data = JSON.parse(File.read(cfile), {symbolize_names: true}).freeze
-      else
-        @data = JSON.parse(ENV[self.class::ENV_CONFIG[:var]], {symbolize_names: true}).freeze
-      end
+      @data = JSON.parse(init_config_data(cfile), {symbolize_names: true}).freeze
 p @data
     end
 
@@ -164,6 +156,14 @@ p @data
     end
 
     private
+
+    def init_config_data(cfile = @config_file)
+      if real_config_file?(cfile)
+        File.read(cfile)
+      else
+        ENV[self.class::ENV_CONFIG[:var]]
+      end
+    end
 
     def define_alias_ebl_data(ebl_data)
       yield(AWSRake::ElasticLoadBalancing.new(region: ebl_data[:region],
