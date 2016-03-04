@@ -36,14 +36,18 @@ module AWSRake
     end
 
     def initialize(options = {})
-      @config_file = options[:config_file]
+      @config_file = (options[:config_file] || ENV[self.class::ENV_CONFIG[:file]])
       @config_init = !!options[:config_init]
       @message_status = !!options[:message]
       @hosted_zone_obj = nil
       @hosted_zone_id = nil
       @data = nil
       @r53 = Aws::Route53::Client.new
-      @config_file = File.expand_path(@config_file) if config_file?
+      if config_file?
+        @config_file = File.expand_path(@config_file)
+      else
+
+      end
       init_config if @config_init
     end
 
@@ -64,7 +68,11 @@ module AWSRake
     end
 
     def init_config(cfile = @config_file)
-      @data = JSON.parse(File.read(cfile), {symbolize_names: true}).freeze
+      if real_config_file?(cfile)
+        @data = JSON.parse(File.read(cfile), {symbolize_names: true}).freeze
+      else
+        @data = JSON.parse(ENV[self.class::ENV_CONFIG[:var]], {symbolize_names: true}).freeze
+      end
 p @data
     end
 

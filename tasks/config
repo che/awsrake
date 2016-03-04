@@ -1,0 +1,12 @@
+namespace :config do
+
+  desc 'Create ENV variable on base configuration file(JSON)'
+  task :file2var, [:var_name] do |task, arg|
+    if !arg[:var_name].nil?
+      STDOUT.puts "#{arg[:var_name].upcase}=#{"#{JSON.parse(File.read(ARGV[1])).to_json}".inspect}".gsub(' ', '')
+    else
+      STDERR.puts "Variable name is not unknown"
+    end
+  end
+
+end

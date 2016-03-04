@@ -11,6 +11,11 @@ module AWSRake
 
       DNS_TYPE = select_dns_type(:a, :aaaa, :cname, :txt)
 
+      ENV_CONFIG = {
+        file: 'AWSRAKE_CONFIG_FAILOVER_FILE',
+        var: 'AWSRAKE_CONFIG_FAILOVER'
+      }
+
       def dns_type_primary?
         if dns_type_defined?
           @dns_name_objs.each do |i|

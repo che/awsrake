@@ -1,18 +1,23 @@
 namespace :route53 do
   namespace :failover do
 
-    r53_failover = AWSRake::Route53::Failover.new(config_file: ARGV[1],
-                                                  config_init: true,
-                                                  message: true)
+    def r53_failover_init
+      AWSRake::Route53::Failover.new(config_file: ARGV[1],
+                                     config_init: true,
+                                     message: true)
+    end
 
     desc 'Information about Hosted Zone for Route53 Failover'
     task :info do
-      
+      r53_failover = r53_failover_init
+      r53_failover.real_dns_type?
     end
 
     desc 'Create new Failover for Hosted Zone of Route53'
     task :create, [:type] do |task, arg|
+      r53_failover = r53_failover_init
       r53_failover.real_dns_type?
+
       if r53_failover.hosted_zone_defined?
         if !arg[:type].nil?
           if arg[:type].to_sym == :primary
@@ -36,6 +41,8 @@ namespace :route53 do
 
     desc 'Update Failover for Hosted Zone of Route53'
     task :update, [:type] do |task, arg|
+      r53_failover = r53_failover_init
+
       if r53_failover.real_dns_type?
         if !arg[:type].nil?
           if arg[:type].to_sym == :primary
@@ -59,6 +66,8 @@ namespace :route53 do
 
     desc 'Delete Failover for Hosted Zone of Route53'
     task :delete, [:type] do |task, arg|
+      r53_failover = r53_failover_init
+
       if r53_failover.real_dns_type?
         if !arg[:type].nil?
           if arg[:type].to_sym == :primary
