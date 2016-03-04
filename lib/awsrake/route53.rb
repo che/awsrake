@@ -29,8 +29,7 @@ module AWSRake
       pending: 'PENDING'
     }
 
-    REG_DNS_FULL_NAME_EXT = /[\.]$/
-    REG_ELB_DOMAIN = /[\.][Ee][Ll][Bb][\.][Aa][Mm][Aa][Zz][Oo][Nn][Aa][Ww][Ss][\.][Cc][Oo][Mm][\.]$/
+    DNS_FULL_NAME_EXT = '.'
 
     def self.select_dns_type(*keys)
       DNS_TYPE.select { |k, v| keys.include?(k) }
@@ -138,23 +137,30 @@ p @data
 
     def full_dns_name(name = @data[:dns_name],
                       zone = @data[:hosted_zone])
-      ebl_dns_name((name =~ REG_DNS_FULL_NAME_EXT)?(name):("#{name}.#{zone}"))
+      (name[-1] == DNS_FULL_NAME_EXT)?(name):("#{name}.#{zone}")
     end
 
-    def ebl_dns_name(name)
-      (name =~ REG_ELB_DOMAIN)?("dualstack.#{name}".downcase):(name)
+    def full_elb_dns_name(name)
+      "dualstack.#{name}.".downcase
     end
 
-    def elb_zone_id(name)
-       if name =~ REG_ELB_DOMAIN
-         #TODO: create algoritm
-         Aws::ElasticLoadBalancing::Client.new(region: 'us-east-1').describe_load_balancers(load_balancer_names: ["ELB-TEST-East"]).load_balancer_descriptions[0].canonical_hosted_zone_name_id
-       else
+    def alias_zone_id(alias_data)
+      if !!alias_data[AWSRake::ElasticLoadBalancing::NAME.to_sym]
+        define_alias_ebl_data(alias_data[AWSRake::ElasticLoadBalancing::NAME.to_sym]) do |ebl_data|
+          alias_data[:dns_name] = full_elb_dns_name(ebl_data.canonical_hosted_zone_name)
+          ebl_data.canonical_hosted_zone_name_id
+        end
+      else
          @hosted_zone_id
-       end
+      end
     end
 
     private
+
+    def define_alias_ebl_data(ebl_data)
+      yield(AWSRake::ElasticLoadBalancing.new(region: ebl_data[:region],
+                                              name: ebl_data[:name]).describe)
+    end
 
     def find_hosted_zone(zone = @data[:hosted_zone])
       @r53.list_hosted_zones.hosted_zones.each do |i|

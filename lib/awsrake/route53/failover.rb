@@ -9,7 +9,7 @@ module AWSRake
         secondary: 'SECONDARY'
       }
 
-      DNS_TYPE = select_dns_type(:a, :aaaa, :cname)
+      DNS_TYPE = select_dns_type(:a, :aaaa, :cname, :txt)
 
       def dns_type_primary?
         if dns_type_defined?
@@ -86,7 +86,7 @@ p build_changes(type, f_type, f_data)
         {
           hosted_zone_id: @hosted_zone_id,
           change_batch: {
-            comment: "#{self.class} #{f_type} #{ACTION.key(type).upcase}D '#{@data[:dns_name]}'",
+            comment: "#{self.class} #{ACTION.key(type)}d #{f_type} for '#{full_dns_name}(#{@data[:dns_type]})'",
             changes: build_changes(type, f_type, f_data)
           }
         }
@@ -113,8 +113,7 @@ p build_changes(type, f_type, f_data)
       def set_target(target, data)
         if data[:alias]
           target[:alias_target] = {
-            hosted_zone_id: elb_zone_id(data[:alias][:dns_name]),
-#            hosted_zone_id: @hosted_zone_id,
+            hosted_zone_id: alias_zone_id(data[:alias]),
             dns_name: full_dns_name(data[:alias][:dns_name]),
             evaluate_target_health: data[:alias][:evaluate_target_health]
           }
@@ -127,7 +126,8 @@ p build_changes(type, f_type, f_data)
         end
       end
 
-      def set_identifier(data, type, id = nil)
+      def set_identifier(data, type, id = 0)
+        id = nil if id == 0
         data[:set_identifier] || "#{@data[:dns_name]}-#{type}#{id}"
       end
 

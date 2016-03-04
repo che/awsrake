@@ -14,7 +14,17 @@
             {
                 "alias" : {
                     "evaluate_target_health" : true,
-                    "dns_name" : "ELB-TEST-222333444.us-east-1.elb.amazonaws.com.",
+                    "elastic_load_balancing" : {
+                        "region" : "us-east-1",
+                        "name" : "ELB-TEST-East"
+                    },
+                    "set_identifier" : null
+                }
+            },
+            {
+                "alias" : {
+                    "evaluate_target_health" : true,
+                    "dns_name" : "test-west-elb",
                     "set_identifier" : null
                 }
             }
